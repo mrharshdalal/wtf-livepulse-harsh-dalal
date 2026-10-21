@@ -17,5 +17,6 @@ router.use('/members', require('./members'));
 router.use('/analytics', require('./analytics'));
 router.use('/anomalies', require('./anomalies'));
 router.use('/simulator', require('./simulator'));
+router.use('/events', require('./events'));
 
 module.exports = router;

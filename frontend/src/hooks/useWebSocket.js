@@ -34,8 +34,10 @@ export default function useWebSocket() {
         return;
       }
       setLastMessage(parsed);
-      const handler = handlersRef.current.get(parsed.type);
-      if (handler) handler(parsed);
+      const handlers = handlersRef.current.get(parsed.type);
+      if (handlers) {
+        for (const handler of handlers) handler(parsed);
+      }
     };
 
     ws.onclose = () => {
@@ -62,8 +64,13 @@ export default function useWebSocket() {
   }, [connect]);
 
   const subscribe = useCallback((type, handler) => {
-    handlersRef.current.set(type, handler);
-    return () => handlersRef.current.delete(type);
+    let handlers = handlersRef.current.get(type);
+    if (!handlers) {
+      handlers = new Set();
+      handlersRef.current.set(type, handlers);
+    }
+    handlers.add(handler);
+    return () => handlers.delete(handler);
   }, []);
 
   return { connected, lastMessage, subscribe };

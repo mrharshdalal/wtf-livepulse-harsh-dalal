@@ -6,6 +6,9 @@ const useStore = create((set) => ({
 
   anomalyCount: 0,
   setAnomalyCount: (count) => set({ anomalyCount: count }),
+
+  anomalySeverityFilter: null, // null | 'warning' | 'critical'
+  setAnomalySeverityFilter: (severity) => set({ anomalySeverityFilter: severity }),
 }));
 
 export default useStore;

@@ -167,9 +167,34 @@ async function getRecentEvents(gymId, limit = 20) {
   return rows.map((r) => ({ ...r, amount: r.amount === null ? null : Number(r.amount) }));
 }
 
+async function getRecentEventsAllGyms(limit = 20) {
+  // Cross-gym equivalent of getRecentEvents -- backs the Dashboard's
+  // "last 20 events across all gyms" activity feed (assignment M-05),
+  // which getRecentEvents can't serve since it's scoped to one gym_id.
+  // Same UNION ALL / per-branch top-K pattern, plus a gym name join.
+  const { rows } = await query(
+    `SELECT * FROM (
+      (SELECT 'checkin' AS event_type, c.checked_in AS event_time, m.name AS member_name, g.name AS gym_name, g.id AS gym_id,
+              NULL::numeric AS amount, NULL::text AS plan_type
+       FROM checkins c JOIN members m ON m.id = c.member_id JOIN gyms g ON g.id = c.gym_id
+       ORDER BY c.checked_in DESC LIMIT $1)
+      UNION ALL
+      (SELECT 'checkout', c.checked_out, m.name, g.name, g.id, NULL::numeric, NULL::text
+       FROM checkins c JOIN members m ON m.id = c.member_id JOIN gyms g ON g.id = c.gym_id
+       WHERE c.checked_out IS NOT NULL ORDER BY c.checked_out DESC LIMIT $1)
+      UNION ALL
+      (SELECT 'payment', p.paid_at, m.name, g.name, g.id, p.amount, p.plan_type
+       FROM payments p JOIN members m ON m.id = p.member_id JOIN gyms g ON g.id = p.gym_id
+       ORDER BY p.paid_at DESC LIMIT $1)
+    ) events ORDER BY event_time DESC LIMIT $1`,
+    [limit]
+  );
+  return rows.map((r) => ({ ...r, amount: r.amount === null ? null : Number(r.amount) }));
+}
+
 module.exports = {
   getGymsList, getGymBasic, gymExists, getLiveOccupancy, getTodayRevenue,
   getSameWeekdayLastWeekRevenue, getRecentCheckinWithinWindow, getChurnRisk,
   getHeatmap, getRevenueByPlan, getNewVsRenewalRatio, getCrossGymRevenue,
-  getRecentEvents, RANGE_DAYS,
+  getRecentEvents, getRecentEventsAllGyms, RANGE_DAYS,
 };

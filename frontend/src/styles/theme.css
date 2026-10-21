@@ -1,17 +1,32 @@
 :root {
-  --bg: #0d0d1a;
-  --card: #1a1a2e;
-  --text: #e2e8f0;
-  --text-muted: #64748b;
+  --bg: #f5f4fb;
+  --card: #ffffff;
+  --border: #ecebf6;
+  --neutral-dim: #f1f0f7;
 
-  --accent: #14b8a6;
+  --text: #17171f;
+  --text-muted: #6b7280;
+  --text-faint: #9ca3af;
 
-  --ok: #22c55e;
-  --warn: #eab308;
-  --crit: #ef4444;
+  --accent: #6c5ce7;
+  --accent-dim: rgba(108, 92, 231, 0.1);
+
+  --ok: #12966b;
+  --ok-dim: #e7f7f0;
+  --warn: #c99200;
+  --warn-dim: #fbf2dc;
+  --crit: #dc3e55;
+  --crit-dim: #fceaee;
+
+  --series-2: #16a6c9;
+  --series-3: #ff9f43;
 
   --font-ui: 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 8px 24px rgba(16, 24, 40, 0.06);
+  --radius-card: 18px;
+  --radius-control: 10px;
 }
 
 * {
@@ -36,12 +51,20 @@ a {
   color: var(--accent);
 }
 
-/* TODO: replace with real component styles as pages are built. */
+button,
+select,
+input {
+  font-family: inherit;
+}
+
+/* ---------- Skeleton loader ---------- */
 .skeleton-card {
   background: var(--card);
-  border-radius: 8px;
-  padding: 16px;
-  min-height: 120px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 20px;
+  min-height: 100px;
   position: relative;
   overflow: hidden;
 }
@@ -50,12 +73,7 @@ a {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.06),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, rgba(108, 92, 231, 0.06), transparent);
   animation: shimmer 1.4s infinite;
 }
 
@@ -68,9 +86,10 @@ a {
   }
 }
 
+/* ---------- Live status dot ---------- */
 .status-dot {
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   display: inline-block;
 }
@@ -86,12 +105,12 @@ a {
 
 @keyframes pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6);
+    box-shadow: 0 0 0 0 rgba(18, 150, 107, 0.55);
   }
   70% {
-    box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+    box-shadow: 0 0 0 7px rgba(18, 150, 107, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+    box-shadow: 0 0 0 0 rgba(18, 150, 107, 0);
   }
 }
