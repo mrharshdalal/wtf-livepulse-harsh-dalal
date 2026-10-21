@@ -1,0 +1,10 @@
+node_modules/
+dist/
+# Final coverage report will be committed under backend/coverage-report/ later;
+# the raw jest/playwright output in these dirs is regenerated and not tracked.
+coverage/
+.env
+playwright-report/
+test-results/
+.DS_Store
+*.log

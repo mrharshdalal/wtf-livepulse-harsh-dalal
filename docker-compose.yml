@@ -1,0 +1,57 @@
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-wtf_livepulse}
+      POSTGRES_USER: ${POSTGRES_USER:-wtf}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-wtf_secret}
+      TZ: Asia/Kolkata
+      PGTZ: Asia/Kolkata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/src/db/migrations:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
+    # Must probe over TCP: during first-init seeding Postgres only listens on
+    # the Unix socket, so a socket-based check would report healthy before
+    # the init scripts finish and the backend would start against a
+    # half-seeded database.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-wtf}:${POSTGRES_PASSWORD:-wtf_secret}@db:5432/${POSTGRES_DB:-wtf_livepulse}
+      PORT: 3001
+      NODE_ENV: development
+      TZ: Asia/Kolkata
+      SIMULATOR_AUTOSTART: false
+      ANOMALY_INTERVAL_MS: 30000
+    ports:
+      - "3001:3001"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: node src/server.js
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/api/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
