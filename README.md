@@ -31,8 +31,11 @@ design, simulator approach, anomaly detection approach, etc.) as they are made. 
 **This section is mandatory.** It must list every AI tool used while building
 this project and what each one was used for.
 
-<!-- TODO: list AI tools used (e.g. Claude Code, Copilot, ChatGPT) and describe
-what each was used for. -->
+- **Claude Code (Plan Mode)** — used to research the codebase, design the
+  implementation approach, and align on a step-by-step plan before making
+  changes.
+- **Claude Code (Execute Mode)** — used to implement the agreed plan: writing
+  and editing code, running commands, and verifying changes.
 
 ## Query Benchmarks
 
