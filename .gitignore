@@ -8,3 +8,7 @@ playwright-report/
 test-results/
 .DS_Store
 *.log
+
+WTF_LivePulse_Data_Specification.docx
+WTF_LivePulse_Technical_Assignment.docx
+IMPLEMENTATION_PLAN.md
