@@ -1,6 +1,6 @@
 jest.mock('../../src/db/pool', () => ({
   pool: { end: jest.fn() },
-  query: jest.fn().mockResolvedValue({ rows: [{ count: '0' }] }),
+  query: jest.fn().mockResolvedValue({ rows: [] }),
   waitForDb: jest.fn().mockResolvedValue(undefined),
 }));
 
@@ -14,9 +14,9 @@ describe('GET /api/*', () => {
     expect(res.body).toHaveProperty('error');
   });
 
-  test('GET /api/gyms returns 501 (not implemented stub)', async () => {
+  test('GET /api/gyms returns 200 with a list (real implementation, mocked DB)', async () => {
     const res = await request(app).get('/api/gyms');
-    expect(res.status).toBe(501);
-    expect(res.body).toEqual({ error: 'Not implemented', endpoint: 'GET /gyms' });
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
   });
 });

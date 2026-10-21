@@ -1,14 +1,34 @@
-let intervalHandle = null;
+const simulatorEngine = require('../services/simulatorEngine');
+const { query } = require('../db/pool');
 
-// TODO: generate synthetic check-ins/check-outs/payments and broadcast them
-// over the WebSocket to drive the live dashboard.
-function tick() {
-  console.debug('[simulator] tick (not implemented)');
+let intervalHandle = null;
+let speed = 1;
+let ticking = false;
+
+async function tick() {
+  if (ticking) return;
+  ticking = true;
+  try {
+    const { rows: gyms } = await query(
+      `SELECT id, name, capacity, opens_at, closes_at FROM gyms WHERE status = 'active'`
+    );
+    const now = new Date();
+    const tickIntervalMs = 2000 / speed;
+    await Promise.all(gyms.map((gym) => simulatorEngine.tickGym(gym, now, tickIntervalMs)));
+  } catch (err) {
+    console.error('[simulator] tick failed:', err);
+  } finally {
+    ticking = false;
+  }
 }
 
-/** @param {1|5|10} speed */
-function start(speed = 1) {
-  if (intervalHandle) return;
+/** @param {1|5|10} speed_ */
+function start(speed_ = 1) {
+  // Always re-arm at the new speed (rather than no-op if already running) --
+  // a speed change while running must actually take effect for the UI's
+  // speed selector to be meaningful.
+  if (intervalHandle) clearInterval(intervalHandle);
+  speed = speed_;
   intervalHandle = setInterval(tick, 2000 / speed);
 }
 
@@ -22,4 +42,8 @@ function isRunning() {
   return intervalHandle !== null;
 }
 
-module.exports = { start, stop, isRunning };
+function currentSpeed() {
+  return speed;
+}
+
+module.exports = { start, stop, isRunning, currentSpeed };

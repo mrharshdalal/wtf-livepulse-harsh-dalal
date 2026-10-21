@@ -1,20 +1,30 @@
 const express = require('express');
+const simulatorService = require('../services/simulatorService');
 
 const router = express.Router();
 
-// TODO: accept body { speed: 1|5|10 }; start the simulator job; return { status: 'running', speed }.
-router.post('/start', (req, res) => {
-  res.status(501).json({ error: 'Not implemented', endpoint: 'POST /simulator/start' });
+router.post('/start', (req, res, next) => {
+  try {
+    const { speed } = req.body;
+    if (![1, 5, 10].includes(speed)) {
+      return res.status(400).json({ error: 'speed must be 1, 5, or 10' });
+    }
+    res.json(simulatorService.start(speed));
+  } catch (err) {
+    next(err);
+  }
 });
 
-// TODO: stop the simulator job; return { status: 'paused' }.
 router.post('/stop', (req, res) => {
-  res.status(501).json({ error: 'Not implemented', endpoint: 'POST /simulator/stop' });
+  res.json(simulatorService.stop());
 });
 
-// TODO: reset simulator state; return { status: 'reset' }.
-router.post('/reset', (req, res) => {
-  res.status(501).json({ error: 'Not implemented', endpoint: 'POST /simulator/reset' });
+router.post('/reset', async (req, res, next) => {
+  try {
+    res.json(await simulatorService.reset());
+  } catch (err) {
+    next(err);
+  }
 });
 
 module.exports = router;

@@ -375,6 +375,61 @@ BEGIN
   FROM members m
   WHERE m.member_type = 'renewal';
 
+  -- 6a-top-up. Without this, the skewed joined_at distribution in Phase 2f
+  -- (needed to keep 30-day revenue within the Data Spec 5.3 ranges) makes
+  -- literal "today" land at or near zero for almost every gym by pure
+  -- sparsity -- a single day out of a 90-day skewed-older window rarely
+  -- gets a payment. That falsely trips the revenue_drop anomaly on nearly
+  -- every gym instead of just the one deliberately-constructed Salt Lake
+  -- scenario (6b, below). Guarantee every gym EXCEPT Salt Lake has today's
+  -- revenue at >= 85% of its own same-weekday-last-week baseline (safely
+  -- above the anomaly detector's 80% resolve threshold). Run twice: one
+  -- ~Rs 12,000 annual top-up clears every gym observed except the highest
+  -- last-week baseline, which needs a second pass.
+  INSERT INTO payments (member_id, gym_id, amount, plan_type, payment_type, paid_at, notes)
+  SELECT m.id, n.gym_id, 11999, 'annual', 'renewal',
+         v_now - (random() * INTERVAL '6 hours'), 'seed: today revenue floor top-up'
+  FROM (
+    SELECT g.id AS gym_id,
+           GREATEST(0, COALESCE(lw.amt, 0) * 0.85 - COALESCE(t.amt, 0)) AS shortfall
+    FROM gyms g
+    LEFT JOIN (
+      SELECT gym_id, SUM(amount) AS amt FROM payments
+      WHERE paid_at >= (v_now::date - 7) AND paid_at < (v_now::date - 7 + 1)
+      GROUP BY gym_id
+    ) lw ON lw.gym_id = g.id
+    LEFT JOIN (
+      SELECT gym_id, SUM(amount) AS amt FROM payments WHERE paid_at >= v_now::date GROUP BY gym_id
+    ) t ON t.gym_id = g.id
+    WHERE g.id <> v_gym_saltlake
+  ) n
+  JOIN LATERAL (
+    SELECT id FROM members WHERE gym_id = n.gym_id AND status = 'active' ORDER BY random() LIMIT 1
+  ) m ON TRUE
+  WHERE n.shortfall > 0;
+
+  INSERT INTO payments (member_id, gym_id, amount, plan_type, payment_type, paid_at, notes)
+  SELECT m.id, n.gym_id, 11999, 'annual', 'renewal',
+         v_now - (random() * INTERVAL '6 hours'), 'seed: today revenue floor top-up 2'
+  FROM (
+    SELECT g.id AS gym_id,
+           GREATEST(0, COALESCE(lw.amt, 0) * 0.85 - COALESCE(t.amt, 0)) AS shortfall
+    FROM gyms g
+    LEFT JOIN (
+      SELECT gym_id, SUM(amount) AS amt FROM payments
+      WHERE paid_at >= (v_now::date - 7) AND paid_at < (v_now::date - 7 + 1)
+      GROUP BY gym_id
+    ) lw ON lw.gym_id = g.id
+    LEFT JOIN (
+      SELECT gym_id, SUM(amount) AS amt FROM payments WHERE paid_at >= v_now::date GROUP BY gym_id
+    ) t ON t.gym_id = g.id
+    WHERE g.id <> v_gym_saltlake
+  ) n
+  JOIN LATERAL (
+    SELECT id FROM members WHERE gym_id = n.gym_id AND status = 'active' ORDER BY random() LIMIT 1
+  ) m ON TRUE
+  WHERE n.shortfall > 0;
+
   -- 6b. Salt Lake revenue-drop override (Scenario C) -- applied after 6a as
   -- a correction layered on top, touching only Salt Lake. This necessarily
   -- pushes Salt Lake's 30-day revenue above its Data Spec 5.3 range (the
