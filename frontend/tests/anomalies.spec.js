@@ -49,7 +49,7 @@ test.describe('Anomalies', () => {
       await page.goto('/anomalies');
       await page.locator('.search-box.toolbar input').fill(message);
 
-      const row = page.locator('.att-row', { hasText: message });
+      const row = page.locator('table.data-table tr', { hasText: message });
       await expect(row).toBeVisible();
       await row.getByRole('button', { name: 'Dismiss', exact: true }).click();
 

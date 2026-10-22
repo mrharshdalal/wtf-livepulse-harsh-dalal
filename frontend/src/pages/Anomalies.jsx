@@ -4,7 +4,7 @@ import useAnomalies from '../hooks/useAnomalies';
 import useGymsList from '../hooks/useGymsList';
 import Header from '../components/layout/Header';
 import Card from '../components/ui/Card';
-import AttentionRow from '../components/ui/AttentionRow';
+import StatusBadge from '../components/ui/StatusBadge';
 import Modal from '../components/ui/Modal';
 import Pill from '../components/ui/Pill';
 import SkeletonCard from '../components/ui/SkeletonCard';
@@ -83,29 +83,58 @@ export default function Anomalies() {
               description={query ? `Nothing matches "${query}"` : 'Everything is running within normal thresholds.'}
             />
           ) : (
-            filteredAnomalies.map((a) => (
-              <AttentionRow
-                key={a.id}
-                icon="!"
-                variant={a.resolved ? 'ok' : a.severity === 'critical' ? 'crit' : 'warn'}
-                title={`${TYPE_LABEL[a.type] || a.type} — ${shortGymName(gymNameById[a.gym_id]) || 'Unknown gym'}`}
-                desc={a.message}
-                pill={a.resolved ? 'Resolved' : a.severity === 'critical' ? 'Critical' : 'Warning'}
-                time={a.resolved ? formatRelativeTime(a.resolved_at) : formatRelativeTime(a.detected_at)}
-                action={
-                  !a.resolved
-                    ? {
-                        label: a.dismissed ? 'Dismissed' : 'Dismiss',
-                        disabled: a.severity === 'critical' || a.dismissed,
-                        onClick: () => {
-                          setDismissError(null);
-                          setPendingDismiss(a);
-                        },
-                      }
-                    : undefined
-                }
-              />
-            ))
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Gym Name</th>
+                  <th>Anomaly Type</th>
+                  <th>Severity</th>
+                  <th>Time Detected</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAnomalies.map((a) => {
+                  const status = a.resolved ? 'resolved' : a.dismissed ? 'dismissed' : 'active';
+                  return (
+                    <tr key={a.id}>
+                      <td>{shortGymName(gymNameById[a.gym_id]) || 'Unknown gym'}</td>
+                      <td>
+                        <div>{TYPE_LABEL[a.type] || a.type}</div>
+                        <div className="anomaly-message">{a.message}</div>
+                      </td>
+                      <td>
+                        <StatusBadge variant={a.severity === 'critical' ? 'critical' : 'warning'}>
+                          {a.severity === 'critical' ? 'Critical' : 'Warning'}
+                        </StatusBadge>
+                      </td>
+                      <td>{formatRelativeTime(a.detected_at)}</td>
+                      <td>
+                        <StatusBadge variant={status}>
+                          {status === 'active' ? 'Active' : status === 'resolved' ? 'Resolved' : 'Dismissed'}
+                        </StatusBadge>
+                      </td>
+                      <td>
+                        {!a.resolved && (
+                          <button
+                            type="button"
+                            className="att-action"
+                            disabled={a.severity === 'critical' || a.dismissed}
+                            onClick={() => {
+                              setDismissError(null);
+                              setPendingDismiss(a);
+                            }}
+                          >
+                            {a.dismissed ? 'Dismissed' : 'Dismiss'}
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           )}
         </Card>
       )}

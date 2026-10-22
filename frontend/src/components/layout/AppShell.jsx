@@ -2,6 +2,8 @@ import { Outlet } from 'react-router-dom';
 import IconRail from './IconRail';
 import SidePanel from './SidePanel';
 import useAnomalies from '../../hooks/useAnomalies';
+import useAnomalyToasts from '../../hooks/useAnomalyToasts';
+import ToastStack from '../ui/ToastStack';
 
 export default function AppShell() {
   // Mounted unconditionally (not just on the Anomalies page) purely for
@@ -12,6 +14,7 @@ export default function AppShell() {
   // its detailed list; the tiny duplicate fetch is a non-issue at this
   // data volume.
   useAnomalies({ updatesGlobalCount: true });
+  useAnomalyToasts();
 
   return (
     <div className="app-shell">
@@ -20,6 +23,7 @@ export default function AppShell() {
       <main className="main-content">
         <Outlet />
       </main>
+      <ToastStack />
     </div>
   );
 }

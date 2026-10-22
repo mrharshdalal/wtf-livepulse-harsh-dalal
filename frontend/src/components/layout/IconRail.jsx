@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import useStore from '../../store/useStore';
 import { HomeIcon, GridIcon, AlertIcon, GearIcon } from './icons';
@@ -6,8 +7,24 @@ function railClass({ isActive }) {
   return `rail-icon ${isActive ? 'active' : ''}`.trim();
 }
 
+const FLASH_MS = 700;
+
 export default function IconRail() {
   const anomalyCount = useStore((s) => s.anomalyCount);
+  const [flashing, setFlashing] = useState(false);
+  const prevCount = useRef(anomalyCount);
+
+  useEffect(() => {
+    // Flash on increase only (assignment S6.2: "Flash badge count") -- a
+    // resolve-driven decrease shouldn't draw the same attention.
+    if (anomalyCount > prevCount.current) {
+      setFlashing(true);
+      const timer = setTimeout(() => setFlashing(false), FLASH_MS);
+      prevCount.current = anomalyCount;
+      return () => clearTimeout(timer);
+    }
+    prevCount.current = anomalyCount;
+  }, [anomalyCount]);
 
   return (
     <nav className="rail">
@@ -23,7 +40,9 @@ export default function IconRail() {
         </NavLink>
         <NavLink to="/anomalies" className={railClass} title="Anomalies">
           <AlertIcon />
-          {anomalyCount > 0 && <span className="badge">{anomalyCount > 99 ? '99+' : anomalyCount}</span>}
+          {anomalyCount > 0 && (
+            <span className={`badge${flashing ? ' flash' : ''}`}>{anomalyCount > 99 ? '99+' : anomalyCount}</span>
+          )}
         </NavLink>
       </div>
       <div className="rail-bottom">

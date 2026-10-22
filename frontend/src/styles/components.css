@@ -69,6 +69,14 @@
   justify-content: center;
   border: 2px solid var(--card);
 }
+@keyframes badge-flash {
+  0%, 100% { transform: scale(1); }
+  30% { transform: scale(1.45); background: var(--warn); }
+  60% { transform: scale(1); }
+}
+.rail-icon .badge.flash {
+  animation: badge-flash 0.7s ease;
+}
 .rail-bottom {
   display: flex;
   flex-direction: column;
@@ -524,6 +532,10 @@
   background: var(--ok-dim);
   color: var(--ok);
 }
+.status-badge.dismissed {
+  background: var(--neutral-dim);
+  color: var(--text-muted);
+}
 
 /* ---------- Segmented bar ---------- */
 .seg-number {
@@ -931,6 +943,11 @@ table.data-table td {
 table.data-table tr:last-child td {
   border-bottom: none;
 }
+.anomaly-message {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
 
 /* ---------- Grids ---------- */
 .grid-dashboard {
@@ -947,4 +964,73 @@ table.data-table tr:last-child td {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 22px;
+}
+
+/* ---------- Toasts ---------- */
+@keyframes toast-in {
+  from { transform: translateX(16px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.toast-stack {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 320px;
+}
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--card);
+  border-radius: var(--radius-control);
+  box-shadow: var(--shadow-card);
+  border-left: 3px solid var(--warn);
+  padding: 12px 12px 12px 14px;
+  animation: toast-in 0.25s ease;
+}
+.toast.crit {
+  border-left-color: var(--crit);
+}
+.toast-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--warn-dim);
+  color: var(--warn);
+}
+.toast.crit .toast-icon {
+  background: var(--crit-dim);
+  color: var(--crit);
+}
+.toast-body {
+  flex: 1;
+  min-width: 0;
+}
+.toast-title {
+  font-size: 12px;
+  font-weight: 700;
+}
+.toast-message {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.toast-close {
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0 0 4px;
 }

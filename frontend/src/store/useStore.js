@@ -9,6 +9,10 @@ const useStore = create((set) => ({
 
   anomalySeverityFilter: null, // null | 'warning' | 'critical'
   setAnomalySeverityFilter: (severity) => set({ anomalySeverityFilter: severity }),
+
+  toasts: [],
+  pushToast: (toast) => set((s) => ({ toasts: [...s.toasts, toast] })),
+  dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
 }));
 
 export default useStore;
