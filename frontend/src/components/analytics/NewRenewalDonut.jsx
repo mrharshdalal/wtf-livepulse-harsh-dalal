@@ -3,7 +3,7 @@ import Card from '../ui/Card';
 import SkeletonCard from '../ui/SkeletonCard';
 import ErrorState from '../ui/ErrorState';
 
-const COLORS = { new: '#6c5ce7', renewal: '#16a6c9' };
+const COLORS = { new: 'var(--accent)', renewal: 'var(--series-2)' };
 const LABELS = { new: 'New', renewal: 'Renewal' };
 
 export default function NewRenewalDonut({ data, loading, error }) {

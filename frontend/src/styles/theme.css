@@ -1,30 +1,38 @@
+/* Dark theme per the Technical Assignment's §7.2 Color Palette spec:
+   background #0D0D1A (near-black), cards #1A1A2E, text #E2E8F0/#64748B,
+   one bold accent -- teal was picked over red/orange because the status
+   palette below already owns red (critical) and amber (warning); reusing
+   either for the brand accent would blur anomaly severity with brand
+   chrome. All hues (accent, series-2/3, ok/warn/crit) were run through the
+   dataviz skill's validate_palette.js against this dark surface -- see
+   that check for the CVD-safety reasoning behind these exact shades. */
 :root {
-  --bg: #f5f4fb;
-  --card: #ffffff;
-  --border: #ecebf6;
-  --neutral-dim: #f1f0f7;
+  --bg: #0d0d1a;
+  --card: #1a1a2e;
+  --border: #2a2a42;
+  --neutral-dim: #23233d;
 
-  --text: #17171f;
-  --text-muted: #6b7280;
-  --text-faint: #9ca3af;
+  --text: #e2e8f0;
+  --text-muted: #64748b;
+  --text-faint: #475569;
 
-  --accent: #6c5ce7;
-  --accent-dim: rgba(108, 92, 231, 0.1);
+  --accent: #0d9488;
+  --accent-dim: rgba(13, 148, 136, 0.16);
 
-  --ok: #12966b;
-  --ok-dim: #e7f7f0;
-  --warn: #c99200;
-  --warn-dim: #fbf2dc;
-  --crit: #dc3e55;
-  --crit-dim: #fceaee;
+  --ok: #16a34a;
+  --ok-dim: rgba(22, 163, 74, 0.16);
+  --warn: #d97706;
+  --warn-dim: rgba(217, 119, 6, 0.16);
+  --crit: #e11d48;
+  --crit-dim: rgba(225, 29, 72, 0.16);
 
-  --series-2: #16a6c9;
-  --series-3: #ff9f43;
+  --series-2: #3b82f6;
+  --series-3: #ec4899;
 
   --font-ui: 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
-  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 8px 24px rgba(16, 24, 40, 0.06);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.5);
   --radius-card: 18px;
   --radius-control: 10px;
 }
@@ -73,7 +81,7 @@ input {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(108, 92, 231, 0.06), transparent);
+  background: linear-gradient(90deg, transparent, rgba(13, 148, 136, 0.14), transparent);
   animation: shimmer 1.4s infinite;
 }
 
@@ -105,12 +113,12 @@ input {
 
 @keyframes pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(18, 150, 107, 0.55);
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.55);
   }
   70% {
-    box-shadow: 0 0 0 7px rgba(18, 150, 107, 0);
+    box-shadow: 0 0 0 7px rgba(22, 163, 74, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(18, 150, 107, 0);
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0);
   }
 }

@@ -12,7 +12,10 @@ const DISPLAY_DAYS = [
   { label: 'Sun', dow: 0 },
 ];
 
-const RAMP = ['#f1f0f7', '#e0dbfa', '#cdc2f8', '#bcaef5', '#a593f1', '#8a76ed', '#6c5ce7', '#5440c9'];
+// Dim-to-vivid teal ramp (not light-to-dark) -- on the dark #0D0D1A
+// surface, "more intense" reads as brighter/more saturated, the inverse
+// of a light-mode ramp's light-tint-to-saturated direction.
+const RAMP = ['#1c2b2c', '#173f3e', '#0f5351', '#0a6663', '#0d9488', '#14b8a6', '#2dd4bf', '#5eead4'];
 
 function colorFor(value, max) {
   if (!max || value <= 0) return RAMP[0];

@@ -67,6 +67,16 @@ PostgreSQL 15 for storage — all orchestrated with Docker Compose.
   created at or after that epoch and restores any session the simulator
   itself closed — the original seeded history (and its hand-built anomaly
   scenarios) is never touched.
+- **Accent color is teal, not red or orange** — the spec's §7.2 palette
+  requires picking exactly one of red/teal/orange. Red and orange were
+  already spoken for by the status palette (`--crit` red for critical
+  anomalies/breaches, `--warn` amber for warnings); reusing either as the
+  general-purpose brand accent would make "this element is teal because
+  it's the brand color" and "this element is red because it's critical"
+  visually ambiguous. Every color in the dark palette (`theme.css`) —
+  accent, the two chart series colors, and the three status colors — was
+  run through the dataviz skill's `validate_palette.js` against the
+  `#0D0D1A` surface for colorblind-safe separation before being finalized.
 
 ## AI Tools Used
 
@@ -106,14 +116,6 @@ any of the six queries.
 
 ## Known Limitations
 
-- **Theme and accent color deliberately deviate from the written spec.**
-  The assignment calls for a dark theme with a red/teal/orange accent
-  ("Bloomberg terminal" styling). After reviewing reference screenshots the
-  user supplied (a light, card-based SaaS layout), the decision was made —
-  explicitly, after I flagged the conflict — to build a light theme with a
-  purple/indigo accent (`#6C5CE7`) instead, trading spec-literal compliance
-  for closer fidelity to that direction. This is a conscious choice, not an
-  oversight.
 - **Seed data favors triggering anomalies over strict demographic
   accuracy, with specific, known consequences for two of the Data
   Specification's own validation checks (§8).** Per an explicit instruction
