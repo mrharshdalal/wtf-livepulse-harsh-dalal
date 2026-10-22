@@ -1,0 +1,15 @@
+                                                 QUERY PLAN                                                  
+-------------------------------------------------------------------------------------------------------------
+ Sort  (cost=1.63..1.66 rows=15 width=155) (actual time=0.020..0.021 rows=19 loops=1)
+   Sort Key: detected_at DESC
+   Sort Method: quicksort  Memory: 28kB
+   Buffers: shared hit=4
+   ->  Seq Scan on anomalies  (cost=0.00..1.33 rows=15 width=155) (actual time=0.004..0.006 rows=19 loops=1)
+         Filter: ((NOT resolved) OR (resolved_at >= (now() - '24:00:00'::interval)))
+         Buffers: shared hit=1
+ Planning:
+   Buffers: shared hit=127
+ Planning Time: 0.276 ms
+ Execution Time: 0.036 ms
+(11 rows)
+

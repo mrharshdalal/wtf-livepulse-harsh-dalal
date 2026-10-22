@@ -21,5 +21,3 @@ CREATE INDEX IF NOT EXISTS idx_payments_date ON payments (paid_at DESC);
 
 -- Supports the active-anomalies feed, newest first, per gym.
 CREATE INDEX IF NOT EXISTS idx_anomalies_active ON anomalies (gym_id, detected_at DESC) WHERE resolved = FALSE;
-
--- TODO: tune indexes after seeding (e.g. covering index for cross-gym revenue) — no Seq Scan allowed on checkins/payments.

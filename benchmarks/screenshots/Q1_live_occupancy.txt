@@ -1,0 +1,23 @@
+                                                                    QUERY PLAN                                                                    
+--------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=10.38..10.39 rows=1 width=4) (actual time=0.052..0.052 rows=1 loops=1)
+   Buffers: shared hit=7
+   InitPlan 1 (returns $0)
+     ->  Limit  (cost=1.15..1.15 rows=1 width=41) (actual time=0.028..0.028 rows=1 loops=1)
+           Buffers: shared hit=4
+           ->  Sort  (cost=1.15..1.18 rows=10 width=41) (actual time=0.027..0.027 rows=1 loops=1)
+                 Sort Key: gyms.name
+                 Sort Method: top-N heapsort  Memory: 25kB
+                 Buffers: shared hit=4
+                 ->  Seq Scan on gyms  (cost=0.00..1.10 rows=10 width=41) (actual time=0.004..0.005 rows=10 loops=1)
+                       Buffers: shared hit=1
+   ->  Index Only Scan using idx_checkins_live_occupancy on checkins  (cost=0.15..9.10 rows=54 width=0) (actual time=0.049..0.050 rows=3 loops=1)
+         Index Cond: (gym_id = $0)
+         Heap Fetches: 3
+         Buffers: shared hit=7
+ Planning:
+   Buffers: shared hit=183
+ Planning Time: 0.601 ms
+ Execution Time: 0.089 ms
+(19 rows)
+

@@ -6,6 +6,7 @@ const { pool, waitForDb, query } = require('./db/pool');
 const { initWebSocket, closeWebSocket } = require('./websocket');
 const anomalyDetector = require('./jobs/anomalyDetector');
 const simulator = require('./jobs/simulator');
+const viewRefresher = require('./jobs/viewRefresher');
 
 async function main() {
   console.log('[server] waiting for database...');
@@ -27,6 +28,7 @@ async function main() {
   initWebSocket(server);
 
   anomalyDetector.start();
+  viewRefresher.start();
   if (config.simulatorAutostart) {
     simulator.start(1);
   }
@@ -38,6 +40,7 @@ async function main() {
   async function shutdown(signal) {
     console.log(`[server] received ${signal}, shutting down...`);
     anomalyDetector.stop();
+    viewRefresher.stop();
     simulator.stop();
     closeWebSocket();
     server.close(async () => {

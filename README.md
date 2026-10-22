@@ -1,59 +1,133 @@
 # WTF LivePulse
 
-A real-time multi-gym operations dashboard. React 18 + Vite on the frontend,
-Node.js 20 + Express 4 + `ws` on the backend, PostgreSQL 15 for storage — all
-orchestrated with Docker Compose.
-
-This repository is currently an **empty, runnable scaffold**. Business logic
-(seed data, analytics queries, anomaly rules, simulator behaviour, charts,
-polished UI) is not implemented yet.
+A real-time multi-gym operations dashboard: live occupancy, revenue, churn
+risk, and automatic anomaly detection across 10 gyms, backed by a seeded
+90-day history and a speed-adjustable live traffic simulator. React 18 +
+Vite on the frontend, Node.js 20 + Express 4 + `ws` on the backend,
+PostgreSQL 15 for storage — all orchestrated with Docker Compose.
 
 ## Quick Start
 
 - **Prerequisites:** Docker Desktop (nothing else needs to be installed on the host).
-- **Run everything:** `docker compose up`
+- **Run everything:** `docker compose up` (first run seeds the database automatically; takes a few seconds).
 - **URLs:**
   - Frontend: http://localhost:3000
   - API health check: http://localhost:3001/api/health
 - **Run tests:**
-  - Backend: `cd backend && npm test`
-  - Frontend e2e: `cd frontend && npx playwright test`
-
-<!-- TODO: expand with more detail once real features land -->
+  - Backend: `cd backend && npm test` (81+ unit/integration tests, 80%+ coverage enforced)
+  - Frontend e2e: `cd frontend && npx playwright test` (assumes the stack from `docker compose up` is already running)
 
 ## Architecture Decisions
 
-<!-- TODO: document key architecture decisions (DB schema rationale, WebSocket
-design, simulator approach, anomaly detection approach, etc.) as they are made. -->
+- **UUID primary keys, not serial IDs.** Every table uses
+  `UUID PRIMARY KEY DEFAULT gen_random_uuid()` (via Postgres's `pgcrypto`
+  extension, enabled in `000_timezone.sql`), matching the Data
+  Specification's schema literally rather than substituting auto-increment
+  integers.
+- **Indexes are purpose-built per query, not generic.** Each index in
+  `002_indexes.sql` exists to serve one specific hot path: a partial index
+  on `checkins (gym_id, checked_out) WHERE checked_out IS NULL` for live
+  occupancy, a partial index on `members (last_checkin_at) WHERE status =
+  'active'` for churn risk, a BRIN index on `checkins (checked_in)` (cheap
+  for the append-mostly, time-ordered check-in stream), and a partial index
+  on `anomalies (gym_id, detected_at DESC) WHERE resolved = FALSE` for the
+  active-anomaly feed. See **Query Benchmarks** below for the measured
+  payoff.
+- **`gym_hourly_stats` is a materialized view, refreshed on a timer.** The
+  heatmap aggregates 7 days of check-ins per gym/hour; querying it live
+  would mean re-aggregating ~270k rows on every request. It's refreshed
+  once at seed time and then periodically by `jobs/viewRefresher.js` (every
+  60s, via `REFRESH MATERIALIZED VIEW CONCURRENTLY`, which the view's
+  unique index makes non-blocking for concurrent reads) so it keeps
+  reflecting the simulator's live writes instead of going stale after
+  the container starts.
+- **Anomaly detection uses independent fire/resolve thresholds (hysteresis),
+  not a single negated condition.** E.g. capacity breach fires at >90% but
+  only resolves below 85% — the 85-90% band deliberately does neither. A
+  single threshold would flap an anomaly open/closed on every tick as
+  occupancy hovers near the line; the band absorbs that noise. Same pattern
+  for revenue drop (fires <70% of last week, resolves ≥80%).
+- **The traffic simulator pins its firing probability to a fixed reference
+  window (`BASE_TICK_MS = 2000`), not the actual scheduled tick
+  interval.** At higher speed multipliers the engine ticks more often on a
+  shorter real interval; if the per-tick probability were computed against
+  that shrinking interval, the speedup would mathematically cancel itself
+  out (more, smaller-probability ticks nets to the same real-world rate
+  regardless of speed). Pinning the probability to the fixed window means
+  ticking `speed`× more often at the same per-tick probability correctly
+  multiplies real-world throughput by `speed`.
+- **WebSocket event delivery supports multiple independent subscribers per
+  event type.** `useWebSocket`'s handler registry is a
+  `Map<eventType, Set<handler>>`, not a single handler per type — several
+  components (e.g. the global anomaly-count badge and a page-scoped,
+  filtered anomaly list) can each subscribe to `ANOMALY_DETECTED` without
+  clobbering one another's callback.
+- **The simulator's "reset" is epoch-based, not a full data wipe.** Starting
+  the simulator records a timestamp; `reset` deletes only check-ins/payments
+  created at or after that epoch and restores any session the simulator
+  itself closed — the original seeded history (and its hand-built anomaly
+  scenarios) is never touched.
 
 ## AI Tools Used
 
 **This section is mandatory.** It must list every AI tool used while building
 this project and what each one was used for.
 
-- **Claude Code (Plan Mode)** — used to research the codebase, design the
-  implementation approach, and align on a step-by-step plan before making
-  changes.
-- **Claude Code (Execute Mode)** — used to implement the agreed plan: writing
-  and editing code, running commands, and verifying changes.
+- **Claude Code (Plan Mode)** — used to research the codebase and the two
+  spec documents, and to design/align on a step-by-step implementation
+  approach (seed data → backend logic → frontend → tests → benchmarks)
+  before making changes at each step.
+- **Claude Code (Execute Mode)** — used to implement each agreed plan:
+  writing and editing code, running the stack and test suites, diagnosing
+  and fixing real bugs surfaced by actually running the code (not just
+  reading it), and verifying results end-to-end.
 
 ## Query Benchmarks
 
-<!-- TODO: fill in this table once benchmarks/queries.sql has been run against
-a seeded database. Screenshots go in benchmarks/screenshots/. -->
+`EXPLAIN (ANALYZE, BUFFERS)` output for the six benchmark queries, captured
+against the fully seeded database (10 gyms, 5,000 members, ~270k check-ins,
+~6k payments). Each query is the exact production SQL from
+`backend/src/services/` — see `benchmarks/queries.sql` to run them yourself
+and `benchmarks/screenshots/*.txt` for the full plans (saved as text, not
+images — see that folder's README for why).
 
-| # | Query | Index Used | Execution Time | Screenshot |
-|---|-------|------------|-----------------|------------|
-| Q1 | Live Occupancy | TODO | TODO | TODO |
-| Q2 | Today's Revenue | TODO | TODO | TODO |
-| Q3 | Churn Risk | TODO | TODO | TODO |
-| Q4 | Peak Hour Heatmap | TODO | TODO | TODO |
-| Q5 | Cross-Gym Revenue | TODO | TODO | TODO |
-| Q6 | Active Anomalies | TODO | TODO | TODO |
+| # | Query | Index Used | Target | Actual |
+|---|-------|------------|--------|--------|
+| Q1 | Live Occupancy | `idx_checkins_live_occupancy` (Index Only Scan) | < 0.5ms | **0.089 ms** |
+| Q2 | Today's Revenue | `idx_payments_gym_date` (Index Scan) | < 0.8ms | **0.084 ms** |
+| Q3 | Churn Risk | `idx_members_gym_id` + `idx_members_churn_risk` (BitmapAnd) | < 1ms | **0.240 ms** |
+| Q4 | Peak Hour Heatmap | `gym_hourly_stats_uidx` (Bitmap Index Scan on the mat. view) | < 0.3ms | **0.108 ms** |
+| Q5 | Cross-Gym Revenue | `idx_payments_date` (Bitmap Index Scan) + Hash Left Join | < 2ms | **0.556 ms** |
+| Q6 | Active Anomalies | Seq Scan (table is ~19 rows — an index would be slower) | < 0.3ms | **0.036 ms** |
+
+All six clear their target comfortably. Neither large table (`checkins`
+~270k rows, `payments` ~6k rows) ever falls back to a sequential scan across
+any of the six queries.
 
 ## Known Limitations
 
-<!-- TODO: document known limitations as functionality is implemented. -->
+- **Theme and accent color deliberately deviate from the written spec.**
+  The assignment calls for a dark theme with a red/teal/orange accent
+  ("Bloomberg terminal" styling). After reviewing reference screenshots the
+  user supplied (a light, card-based SaaS layout), the decision was made —
+  explicitly, after I flagged the conflict — to build a light theme with a
+  purple/indigo accent (`#6C5CE7`) instead, trading spec-literal compliance
+  for closer fidelity to that direction. This is a conscious choice, not an
+  oversight.
+- **Seed data favors triggering anomalies over strict demographic
+  accuracy.** Per an explicit instruction during Step 1 ("I don't need the
+  data to be very accurate because I want to trigger anomalies too"), the
+  seed script's random distributions (join dates, churn tiers, revenue) are
+  tuned so the three hand-built anomaly scenarios (Velachery zero-checkins,
+  Bandra West capacity breach, Salt Lake revenue drop) reliably exist after
+  seeding, rather than being optimized for the tightest possible fit to
+  every soft demographic guideline in the Data Specification.
+- **The anomaly detector and traffic simulator run on a fixed real-time
+  interval** (30s and 2s/`speed` respectively) — they are not deterministic
+  or replayable; re-running the stack produces different simulator-driven
+  events each time, by design.
+- **No authentication.** Per the assignment's scope, this is a
+  single-tenant internal dashboard with no login/session layer.
 
 ## Project Structure
 
@@ -66,7 +140,6 @@ wtf-livepulse/
 │
 ├── backend/
 │   ├── Dockerfile
-│   ├── .dockerignore
 │   ├── package.json
 │   ├── jest.config.js
 │   ├── src/
@@ -79,11 +152,16 @@ wtf-livepulse/
 │   │   │   ├── members.js
 │   │   │   ├── analytics.js
 │   │   │   ├── anomalies.js
+│   │   │   ├── events.js
 │   │   │   └── simulator.js
 │   │   ├── services/
-│   │   │   ├── anomalyService.js
-│   │   │   ├── simulatorService.js
-│   │   │   └── statsService.js
+│   │   │   ├── statsService.js       — read-side SQL (occupancy, revenue, churn, heatmap, cross-gym)
+│   │   │   ├── anomalyService.js     — pure evaluator functions (fire/resolve thresholds)
+│   │   │   ├── anomalyRepository.js  — anomalies table CRUD
+│   │   │   ├── simulatorEngine.js    — Poisson-calibrated check-in/checkout/payment generation
+│   │   │   └── simulatorService.js   — start/stop/reset facade
+│   │   ├── shared/
+│   │   │   └── trafficPatterns.js    — hour/day traffic multipliers (timezone-safe)
 │   │   ├── db/
 │   │   │   ├── migrations/
 │   │   │   │   ├── 000_timezone.sql
@@ -91,12 +169,11 @@ wtf-livepulse/
 │   │   │   │   ├── 002_indexes.sql
 │   │   │   │   ├── 003_views.sql
 │   │   │   │   └── 004_seed.sql
-│   │   │   ├── seeds/
-│   │   │   │   └── README.md
 │   │   │   └── pool.js
 │   │   ├── jobs/
-│   │   │   ├── anomalyDetector.js
-│   │   │   └── simulator.js
+│   │   │   ├── anomalyDetector.js    — 30s evaluation loop
+│   │   │   ├── simulator.js          — 2s/speed tick loop
+│   │   │   └── viewRefresher.js      — 60s gym_hourly_stats refresh loop
 │   │   ├── websocket/
 │   │   │   ├── index.js
 │   │   │   └── broadcast.js
@@ -104,44 +181,47 @@ wtf-livepulse/
 │   │       ├── errorHandler.js
 │   │       └── validate.js
 │   └── tests/
-│       ├── unit/
-│       │   └── sanity.test.js
-│       └── integration/
-│           └── health.test.js
+│       ├── setupEnv.js
+│       ├── unit/           — anomalyService, simulatorEngine, trafficPatterns, broadcast, errorHandler
+│       └── integration/    — gyms, anomalies, analytics, simulator, simulatorEngine, anomalyDetector, viewRefresher, events, pool, health
 │
 ├── frontend/
 │   ├── Dockerfile
-│   ├── .dockerignore
 │   ├── nginx.conf
 │   ├── package.json
 │   ├── vite.config.js
 │   ├── playwright.config.js
-│   ├── index.html
 │   ├── src/
 │   │   ├── main.jsx
 │   │   ├── App.jsx
 │   │   ├── components/
-│   │   │   └── .gitkeep
+│   │   │   ├── layout/      — AppShell, IconRail, SidePanel, Header, icons
+│   │   │   ├── ui/          — Card, Pill, Modal, SkeletonCard, ErrorState, EmptyState, SearchInput, …
+│   │   │   ├── dashboard/   — ActivityFeed, OccupancyCard, AllGymsMini, SimulatorControl
+│   │   │   └── analytics/   — Heatmap, RevenueByPlanChart, NewRenewalDonut, CrossGymBarChart, ChurnRiskTable
 │   │   ├── pages/
 │   │   │   ├── Dashboard.jsx
 │   │   │   ├── Analytics.jsx
 │   │   │   └── Anomalies.jsx
-│   │   ├── hooks/
-│   │   │   ├── useWebSocket.js
-│   │   │   ├── useGymData.js
-│   │   │   └── useAnomalies.js
+│   │   ├── hooks/           — useWebSocket, WebSocketProvider, useGymData, useGymsList, useAnomalies, useAnalytics, useCrossGymRevenue, useActivityFeed, useCountUp
 │   │   ├── store/
 │   │   │   └── useStore.js
 │   │   ├── lib/
-│   │   │   └── api.js
+│   │   │   ├── api.js
+│   │   │   └── formatters.js
 │   │   └── styles/
-│   │       └── theme.css
+│   │       ├── theme.css
+│   │       └── components.css
 │   └── tests/
-│       └── smoke.spec.js
+│       ├── smoke.spec.js
+│       ├── dashboard.spec.js
+│       ├── analytics.spec.js
+│       ├── anomalies.spec.js
+│       └── helpers/db.js
 │
 └── benchmarks/
     ├── README.md
     ├── queries.sql
     └── screenshots/
-        └── .gitkeep
+        └── Q1_live_occupancy.txt … Q6_active_anomalies.txt
 ```

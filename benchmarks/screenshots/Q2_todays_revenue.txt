@@ -1,0 +1,22 @@
+                                                              QUERY PLAN                                                              
+--------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=9.46..9.47 rows=1 width=32) (actual time=0.047..0.048 rows=1 loops=1)
+   Buffers: shared hit=6
+   InitPlan 1 (returns $0)
+     ->  Limit  (cost=1.15..1.15 rows=1 width=41) (actual time=0.033..0.033 rows=1 loops=1)
+           Buffers: shared hit=4
+           ->  Sort  (cost=1.15..1.18 rows=10 width=41) (actual time=0.032..0.032 rows=1 loops=1)
+                 Sort Key: gyms.name
+                 Sort Method: top-N heapsort  Memory: 25kB
+                 Buffers: shared hit=4
+                 ->  Seq Scan on gyms  (cost=0.00..1.10 rows=10 width=41) (actual time=0.006..0.008 rows=10 loops=1)
+                       Buffers: shared hit=1
+   ->  Index Scan using idx_payments_gym_date on payments  (cost=0.29..8.30 rows=1 width=5) (actual time=0.045..0.045 rows=0 loops=1)
+         Index Cond: ((gym_id = $0) AND (paid_at >= CURRENT_DATE))
+         Buffers: shared hit=6
+ Planning:
+   Buffers: shared hit=182
+ Planning Time: 0.754 ms
+ Execution Time: 0.084 ms
+(18 rows)
+

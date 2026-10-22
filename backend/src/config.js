@@ -2,6 +2,7 @@ const port = parseInt(process.env.PORT, 10) || 3001;
 const nodeEnv = process.env.NODE_ENV || 'development';
 const simulatorAutostart = process.env.SIMULATOR_AUTOSTART === 'true';
 const anomalyIntervalMs = parseInt(process.env.ANOMALY_INTERVAL_MS, 10) || 30000;
+const viewRefreshIntervalMs = parseInt(process.env.VIEW_REFRESH_INTERVAL_MS, 10) || 60000;
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl && nodeEnv !== 'test') {
@@ -16,4 +17,5 @@ module.exports = {
   nodeEnv,
   simulatorAutostart,
   anomalyIntervalMs,
+  viewRefreshIntervalMs,
 };

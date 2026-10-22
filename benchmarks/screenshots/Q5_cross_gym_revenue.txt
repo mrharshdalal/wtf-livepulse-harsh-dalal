@@ -1,0 +1,39 @@
+                                                                               QUERY PLAN                                                                                
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=105.44..105.46 rows=10 width=81) (actual time=0.455..0.458 rows=10 loops=1)
+   Sort Key: (COALESCE(p.total_revenue, '0'::numeric)) DESC, g.name
+   Sort Method: quicksort  Memory: 25kB
+   Buffers: shared hit=69
+   ->  WindowAgg  (cost=105.10..105.27 rows=10 width=81) (actual time=0.418..0.430 rows=10 loops=1)
+         Buffers: shared hit=63
+         ->  Sort  (cost=105.10..105.12 rows=10 width=73) (actual time=0.411..0.413 rows=10 loops=1)
+               Sort Key: (COALESCE(p.total_revenue, '0'::numeric)) DESC
+               Sort Method: quicksort  Memory: 25kB
+               Buffers: shared hit=63
+               ->  Hash Left Join  (cost=103.79..104.93 rows=10 width=73) (actual time=0.399..0.403 rows=10 loops=1)
+                     Hash Cond: (g.id = p.gym_id)
+                     Buffers: shared hit=63
+                     ->  Seq Scan on gyms g  (cost=0.00..1.10 rows=10 width=41) (actual time=0.005..0.006 rows=10 loops=1)
+                           Buffers: shared hit=1
+                     ->  Hash  (cost=103.67..103.67 rows=10 width=48) (actual time=0.384..0.385 rows=10 loops=1)
+                           Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                           Buffers: shared hit=62
+                           ->  Subquery Scan on p  (cost=103.44..103.67 rows=10 width=48) (actual time=0.374..0.377 rows=10 loops=1)
+                                 Buffers: shared hit=62
+                                 ->  HashAggregate  (cost=103.44..103.57 rows=10 width=48) (actual time=0.373..0.376 rows=10 loops=1)
+                                       Group Key: payments.gym_id
+                                       Batches: 1  Memory Usage: 24kB
+                                       Buffers: shared hit=62
+                                       ->  Bitmap Heap Scan on payments  (cost=11.91..101.10 rows=468 width=21) (actual time=0.047..0.262 rows=480 loops=1)
+                                             Recheck Cond: (paid_at >= (now() - '30 days'::interval))
+                                             Heap Blocks: exact=59
+                                             Buffers: shared hit=62
+                                             ->  Bitmap Index Scan on idx_payments_date  (cost=0.00..11.80 rows=468 width=0) (actual time=0.024..0.024 rows=480 loops=1)
+                                                   Index Cond: (paid_at >= (now() - '30 days'::interval))
+                                                   Buffers: shared hit=3
+ Planning:
+   Buffers: shared hit=197
+ Planning Time: 0.504 ms
+ Execution Time: 0.556 ms
+(35 rows)
+

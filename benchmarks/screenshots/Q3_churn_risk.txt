@@ -1,0 +1,39 @@
+                                                                                         QUERY PLAN                                                                                         
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=288.34..288.53 rows=75 width=69) (actual time=0.181..0.184 rows=38 loops=1)
+   Sort Key: members.last_checkin_at NULLS FIRST
+   Sort Method: quicksort  Memory: 28kB
+   Buffers: shared hit=27
+   InitPlan 1 (returns $0)
+     ->  Limit  (cost=1.15..1.15 rows=1 width=41) (actual time=0.026..0.027 rows=1 loops=1)
+           Buffers: shared hit=4
+           ->  Sort  (cost=1.15..1.18 rows=10 width=41) (actual time=0.026..0.026 rows=1 loops=1)
+                 Sort Key: gyms.name
+                 Sort Method: top-N heapsort  Memory: 25kB
+                 Buffers: shared hit=4
+                 ->  Seq Scan on gyms  (cost=0.00..1.10 rows=10 width=41) (actual time=0.007..0.008 rows=10 loops=1)
+                       Buffers: shared hit=1
+   ->  Bitmap Heap Scan on members  (cost=62.58..284.85 rows=75 width=69) (actual time=0.113..0.155 rows=38 loops=1)
+         Recheck Cond: ((gym_id = $0) AND (((last_checkin_at IS NULL) AND (status = 'active'::text)) OR ((last_checkin_at < (now() - '45 days'::interval)) AND (status = 'active'::text))))
+         Filter: ((last_checkin_at IS NULL) OR (last_checkin_at < (now() - '45 days'::interval)))
+         Heap Blocks: exact=10
+         Buffers: shared hit=24
+         ->  BitmapAnd  (cost=62.58..62.58 rows=75 width=0) (actual time=0.098..0.098 rows=0 loops=1)
+               Buffers: shared hit=14
+               ->  Bitmap Index Scan on idx_members_gym_id  (cost=0.00..20.03 rows=500 width=0) (actual time=0.069..0.069 rows=750 loops=1)
+                     Index Cond: (gym_id = $0)
+                     Buffers: shared hit=9
+               ->  BitmapOr  (cost=42.28..42.28 rows=755 width=0) (actual time=0.021..0.021 rows=0 loops=1)
+                     Buffers: shared hit=5
+                     ->  Bitmap Index Scan on idx_members_churn_risk  (cost=0.00..4.29 rows=1 width=0) (actual time=0.006..0.006 rows=0 loops=1)
+                           Index Cond: (last_checkin_at IS NULL)
+                           Buffers: shared hit=2
+                     ->  Bitmap Index Scan on idx_members_churn_risk  (cost=0.00..37.95 rows=755 width=0) (actual time=0.015..0.015 rows=250 loops=1)
+                           Index Cond: (last_checkin_at < (now() - '45 days'::interval))
+                           Buffers: shared hit=3
+ Planning:
+   Buffers: shared hit=211
+ Planning Time: 0.743 ms
+ Execution Time: 0.240 ms
+(35 rows)
+
